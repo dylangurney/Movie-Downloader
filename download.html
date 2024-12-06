@@ -125,6 +125,8 @@
         <div id="resolutionSelect" style="display: none;">
 
         </div>
+        <br>
+        <span id="tracked"></span>
     </div>
 
     <script>
@@ -184,14 +186,26 @@
             };
         }
 
+        function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const random = Math.random() * 16 | 0; // Generate a random number between 0 and 15
+            const value = c === 'x' ? random : (random & 0x3 | 0x8); // Set the 13th bit to 1 (version 4 UUID)
+            return value.toString(16); // Convert to hexadecimal
+        });
+        }
+
+        let trackeddl = false
+
         function populateResolutions(resolutions, movname) {
             console.log(resolutions)
 
             const resolutionSelect = document.getElementById('resolutionSelect');
             let h = ""
             for (const i of resolutions) {
-                h += `    <a href="https://${randomNode}.glitch.me/download?url=${encodeURIComponent(i[1])}&movname=${movname}">
-                <button>${i[0]}p</button>
+                let dlid = generateUUID()
+
+                h += `    <a href="https://${randomNode}.glitch.me/download?url=${encodeURIComponent(i[1])}&movname=${movname}&downloadid=${dlid}">
+                <button onclick="trackeddl = '${dlid}'">${i[0]}p</button>
                 </a>`
             }
 
@@ -201,6 +215,17 @@
             resolutionSelect.disabled = false;
             document.getElementById('downloadBtn').disabled = false;
         }
+
+
+        setInterval(async () => {
+            if (trackeddl) {
+                const r = await fetch(`https://${randomNode}.glitch.me/progress?downloadid=${trackeddl}`)
+                const a = await r.text()
+                document.getElementById("tracked").textContent = `Download Progress: ${a}`
+                
+            }
+            
+        }, 5000);
     </script>
 
 </body>
