@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>123 Movies Downloader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .form-container {
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .form-container input,
+        .form-container select {
+            padding: 8px;
+            margin: 10px;
+            font-size: 16px;
+            width: 300px;
+        }
+
+        .status {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .status p {
+            font-size: 18px;
+        }
+
+        #movieInfo {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #movieInfo img {
+            max-width: 200px;
+            margin-top: 10px;
+        }
+
+        #downloadStatus {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .movitem {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #2c2c2c;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            width: 200px;
+            text-align: center;
+        }
+        .movimg {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+        .movitem:hover {
+    transform: scale(1.05);
+    box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.5);
+}
+
+.movtitle {
+    font-size: 16px;
+    font-weight: bold;
+    color: white;
+    margin-top: 10px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 180px; /* Restrict title length */
+}
+
+#suggestions {
+    display: flex;
+    flex-wrap: wrap; /* This allows the items to wrap to the next line if needed */
+    gap: 20px; /* Space between each item */
+    justify-content: flex-start; /* Align items to the left */
+    padding: 10px;
+}
+    </style>
+</head>
+
+<body>
+
+    <h1>123 Movies Downloader</h1>
+
+    <div class="form-container">
+        <input type="text" id="movieUrl" placeholder="Enter Movie Name"/>
+        <div id="suggestions">
+            
+        </div>
+        <button onclick="startDownload()" style="display: none;" id="downloadBtn">Start Download</button>
+        <div id="movieinfoload" style="display: none;">
+            <span>Loading video information</span>
+            <img src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">
+        </div>
+        <div id="movieInfo" style="display: none;">
+            <p id="movieName"></p>
+            <p id="movieDesc"></p>
+            <img id="movieThumbnail" src=""/>
+        </div>
+        <div id="resloading" style="display: none;">
+            <span>Loading download resolutions</span>
+            <img src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">
+        </div>
+        
+
+        <div id="resolutionSelect" style="display: none;">
+
+        </div>
+    </div>
+
+    <script>
+        let nodes = [
+            "123movdltest"
+        ]
+        let randomNode = nodes[Math.floor(Math.random() * nodes.length)];
+
+
+        const input = document.getElementById("movieUrl");
+        const suggestionsBox = document.getElementById("suggestions");
+
+        const fetchMovies = async (query) => {
+            if (!query.trim()) {
+                suggestionsBox.innerHTML = ""; // Clear suggestions for empty input
+                return;
+            }
+
+            const url = `https://${randomNode}.glitch.me/search?q=${encodeURIComponent(query)}`;
+            
+            try {
+                suggestionsBox.innerHTML = `<img src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">`
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (query != input.value) {
+                    return
+                }
+
+                if (response.ok) {
+                    displaySuggestions(data);
+                } else {
+                    suggestionsBox.innerHTML = "<div>No results found</div>";
+                }
+            } catch (error) {
+                console.error("Error fetching movies:", error);
+                suggestionsBox.innerHTML = "<div>Error fetching data</div>";
+            }
+            };
+
+        const displaySuggestions = (movies) => {
+            let h = ""
+            for (const i of movies) {
+                console.log(i)
+                h += `
+                <a class="movitem" href="/download.html?l=${encodeURIComponent(i.link)}&name=${encodeURIComponent(i.title)}">
+                    <img src=${i.image} class="movimg">
+                    <p class="movtitle">${i.title}</p>
+                </a>
+                `
+            }
+            suggestionsBox.innerHTML = h
+        };
+
+        input.addEventListener("input", (e) => {
+            fetchMovies(e.target.value);
+        });
+
+
+        function startDownload() {
+            document.getElementById("movieinfoload").style.display = ""
+
+            const eventSource = new EventSource(`https://${randomNode}.glitch.me/startdownload?url=${encodeURIComponent(url)}`);
+            
+            let movname = ""
+            eventSource.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+
+                if (data.movieinfo) {
+                    document.getElementById('movieName').textContent = data.movieinfo[0];
+                    movname = data.movieinfo[0]
+                    document.getElementById('movieDesc').textContent = data.movieinfo[1];
+                    document.getElementById('movieThumbnail').src = data.movieinfo[2];
+                    document.getElementById("movieInfo").style.display = ""
+                    document.getElementById("movieinfoload").style.display = "none"
+                    document.getElementById("resloading").style.display = ""
+                }
+
+                if (data.message) {
+                    console.log(data.message)
+                }
+
+                if (data.error) {
+                    eventSource.close();
+                }
+
+                if (data.res) {
+                    document.getElementById("resloading").style.display = "none"
+                    document.getElementById("resolutionSelect").style.display = ""
+                    populateResolutions(data.res.res, data.res.id, movname);
+                }
+            };
+
+            eventSource.onerror = function () {
+                eventSource.close();
+            };
+        }
+
+        function populateResolutions(resolutions, movieid, movname) {
+            console.log(resolutions)
+
+            const resolutionSelect = document.getElementById('resolutionSelect');
+            let h = ""
+            for (const i of resolutions) {
+                h += `    <a href="https://${randomNode}.glitch.me/download?id=${movieid}&res=${i}&movname=${movname}">
+                <button>${i}p</button>
+                </a>`
+            }
+
+            resolutionSelect.innerHTML = h
+
+            // Enable the resolution select dropdown and the download button
+            resolutionSelect.disabled = false;
+            document.getElementById('downloadBtn').disabled = false;
+        }
+    </script>
+
+</body>
+
+</html>
