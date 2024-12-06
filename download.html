@@ -6,34 +6,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>123 Movies Downloader</title>
     <style>
+        /* Basic reset and font settings */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
             margin: 20px;
         }
 
         h1 {
             text-align: center;
+            font-size: 2.5rem;
+            color: #f3f3f3;
         }
 
+        /* Form container */
         .form-container {
             display: flex;
             justify-content: center;
             flex-direction: column;
             align-items: center;
-            margin-top: 20px;
+            margin-top: 40px;
         }
 
-        .form-container input,
-        .form-container select {
-            padding: 8px;
-            margin: 10px;
+        .form-container input, 
+        .form-container select, 
+        .form-container button {
+            padding: 10px;
+            margin: 15px;
             font-size: 16px;
-            width: 300px;
+            width: 320px;
+            background-color: #333;
+            color: #f3f3f3;
+            border: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
         }
 
+        .form-container button:hover,
+        .form-container input:focus, 
+        .form-container select:focus {
+            background-color: #555;
+        }
+
+        /* Status and movie info */
         .status {
             margin-top: 20px;
             text-align: center;
+            font-size: 1.2rem;
         }
 
         .status p {
@@ -46,15 +71,12 @@
         }
 
         #movieInfo img {
-            max-width: 200px;
+            max-width: 1200px;
             margin-top: 10px;
+            border-radius: 8px;
         }
 
-        #downloadStatus {
-            text-align: center;
-            margin-top: 20px;
-        }
-
+        /* Resolution buttons */
         .movitem {
             display: flex;
             flex-direction: column;
@@ -69,35 +91,82 @@
             width: 200px;
             text-align: center;
         }
+
         .movimg {
-    width: 100%;
-    height: auto;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-}
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
         .movitem:hover {
-    transform: scale(1.05);
-    box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.5);
-}
+            transform: scale(1.05);
+            box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.5);
+        }
 
-.movtitle {
-    font-size: 16px;
-    font-weight: bold;
-    color: white;
-    margin-top: 10px;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    white-space: nowrap;
-    max-width: 180px; /* Restrict title length */
-}
+        .movtitle {
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            margin-top: 10px;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+            max-width: 180px; /* Restrict title length */
+        }
 
-#suggestions {
-    display: flex;
-    flex-wrap: wrap; /* This allows the items to wrap to the next line if needed */
-    gap: 20px; /* Space between each item */
-    justify-content: flex-start; /* Align items to the left */
-    padding: 10px;
-}
+        #suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: flex-start;
+            padding: 10px;
+        }
+
+        /* Progress bar and download button */
+        progress {
+            width: 100%;
+            height: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            background-color: #444;
+            border: none;
+        }
+
+        progress[value]::-webkit-progress-bar {
+            background-color: #333;
+        }
+
+        progress[value]::-webkit-progress-value {
+            background-color: #00aeff;
+        }
+
+        #downloadready {
+            text-align: center;
+            display: none;
+            font-size: 1.2rem;
+            color: #00aeff;
+        }
+
+        #downloadready:hover {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        /* Links */
+        a {
+            color: #00aeff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .spinner {
+        width: 40px; /* Set the width to your desired size */
+        height: 40px; /* Set the height to your desired size */
+    }
     </style>
 </head>
 
@@ -109,7 +178,8 @@
         <button onclick="startDownload()" id="downloadBtn">Start Download</button>
         <div id="movieinfoload" style="display: none;">
             <span>Loading video information</span>
-            <img src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">
+            <br>
+            <img class="spinner" src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">
         </div>
         <div id="movieInfo" style="display: none;">
             <p id="movieName"></p>
@@ -118,7 +188,8 @@
         </div>
         <div id="resloading" style="display: none;">
             <span>Loading download resolutions</span>
-            <img src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">
+            <br>
+            <img class="spinner" src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">
         </div>
         
 
@@ -126,7 +197,13 @@
 
         </div>
         <br>
-        <span id="tracked"></span>
+        <p id="doing" style="display: none">Waiting for download url.</p>
+        <progress id="downloadProgress" value="0" max="100" style="display: none"></progress>
+        <a id="downloadready" style="display: none">Download Ready!</a>
+        <br>
+        <br>
+        <br>
+        <a href="/">Back to home</a>
     </div>
 
     <script>
@@ -142,6 +219,8 @@
 
         document.getElementById("dlname").textContent = getQueryParameter("name")
         let vidurl = getQueryParameter("l")
+        const moviename = getQueryParameter("name")
+        const filename = moviename + ".ts"
 
         function startDownload() {
             document.getElementById("movieinfoload").style.display = ""
@@ -194,7 +273,96 @@
         });
         }
 
-        let trackeddl = false
+        function parseM3U8(text) {
+            const segments = [];
+            
+            // Split the text into lines
+            const lines = text.split('\n');
+            
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                // Skip lines starting with '#' as they are metadata or comments
+                if (!trimmedLine.startsWith('#') && trimmedLine.includes("https://")) {
+                segments.push(trimmedLine);
+                }
+            }
+            
+            return segments;
+        }
+
+        async function realdownload(indexm3u8) {
+    document.getElementById("doing").style.display = "";
+    document.getElementById("downloadProgress").style.display = "";
+    document.getElementById("doing").textContent = "Loading Index file";
+    console.log(indexm3u8);
+
+    // Fetch the m3u8 file and parse it
+    const r = await fetch(decodeURIComponent(indexm3u8));
+    const idxtxt = await r.text();
+    const parsed = parseM3U8(idxtxt);
+    console.log(parsed);
+
+    let bytesDownloaded = 0;  // Track total bytes downloaded
+    let totalBytes = 0;       // Track total bytes for progress calculation
+    let totalChunks = 0;      // Track total chunks downloaded
+
+    // Create a progress bar to track download progress
+    const progressBar = document.getElementById("downloadProgress");
+    const progressText = document.getElementById("doing"); // Display text for progress
+
+    // Prepare the array to hold all chunks
+    const chunkArray = [];
+
+    // Function to update the progress bar and text
+    function updateProgress() {
+        const chunkPercentage = parsed.length > 0 ? (totalChunks / parsed.length) * 100 : 0;
+        const bytesInMB = bytesDownloaded / (1024 * 1024);
+        const totalMB = totalBytes / (1024 * 1024);
+        progressBar.max = parsed.length;
+        progressBar.value = totalChunks;
+        progressText.textContent = `Downloaded ${totalMB.toFixed(2)} MB (${totalChunks}/${parsed.length} chunks) - ${chunkPercentage.toFixed(2)}%`;
+        document.title = `${getQueryParameter("name")} - ${chunkPercentage.toFixed(2)}%`
+    }
+
+
+    // Function to download chunks in batches of 10 (concurrent threads)
+    async function downloadChunksInBatches(chunks) {
+        const batchSize = 50;
+        for (let i = 0; i < chunks.length; i += batchSize) {
+            const batch = chunks.slice(i, i + batchSize); // Slice out a batch of 5 chunks
+            const batchResults = await Promise.all(batch.map(async (i) => {
+                const c = await fetch(i);
+                const cb = await c.blob();
+                const blobSize = cb.size;
+
+                totalBytes += blobSize; // Add to total bytes
+                totalChunks += 1; // Increment total chunks
+                bytesDownloaded += blobSize; // Increment downloaded bytes
+
+                updateProgress(); // Update progress display
+
+                return cb;
+            }));
+
+            chunkArray.push(...batchResults); // Add batch results to the chunk array
+        }
+    }
+
+    // Start downloading the chunks in batches of 5
+    await downloadChunksInBatches(parsed);
+
+    // Combine all downloaded chunks into a single Blob
+    const fileBlob = new Blob(chunkArray);
+
+    // Prepare the download link
+    const downloadLink = document.getElementById("downloadready");
+    downloadLink.href = URL.createObjectURL(fileBlob);
+    downloadLink.download = filename;
+    downloadLink.click();
+    downloadLink.style.display = "";
+
+    document.getElementById("doing").textContent = filename + " is ready to download below!";
+}
 
         function populateResolutions(resolutions, movname) {
             console.log(resolutions)
@@ -202,11 +370,8 @@
             const resolutionSelect = document.getElementById('resolutionSelect');
             let h = ""
             for (const i of resolutions) {
-                let dlid = generateUUID()
-
-                h += `    <a href="https://${randomNode}.glitch.me/download?url=${encodeURIComponent(i[1])}&movname=${movname}&downloadid=${dlid}">
-                <button onclick="trackeddl = '${dlid}'">${i[0]}p</button>
-                </a>`
+   
+                h += `<button onclick="realdownload('${encodeURIComponent(i[1])}')">${i[0]}p</button>`
             }
 
             resolutionSelect.innerHTML = h
@@ -215,17 +380,6 @@
             resolutionSelect.disabled = false;
             document.getElementById('downloadBtn').disabled = false;
         }
-
-
-        setInterval(async () => {
-            if (trackeddl) {
-                const r = await fetch(`https://${randomNode}.glitch.me/progress?downloadid=${trackeddl}`)
-                const a = await r.text()
-                document.getElementById("tracked").textContent = `Download Progress: ${a}`
-                
-            }
-            
-        }, 5000);
     </script>
 
 </body>
