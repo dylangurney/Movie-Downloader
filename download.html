@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Movies Downloader</title>
+    <title>Blank</title>
     <style>
         /* Basic reset and font settings */
         * {
@@ -74,6 +74,11 @@
             max-width: 1200px;
             margin-top: 10px;
             border-radius: 8px;
+        }
+
+        video {
+            max-width: 1200px;
+            margin-top: 10px;
         }
 
         /* Resolution buttons */
@@ -175,7 +180,9 @@
     <h1 id="dlname"></h1>
 
     <div class="form-container">
+        <button onclick="startStreaming()" id="StreamBut">Start Streaming</button>
         <button onclick="startDownload()" id="downloadBtn">Start Download</button>
+
         <div id="movieinfoload" style="display: none;">
             <span>Loading video information</span>
             <br>
@@ -186,8 +193,9 @@
             <p id="movieDesc"></p>
             <img id="movieThumbnail" src=""/>
         </div>
+        <video id="video" controls style="display: none;"></video>
         <div id="resloading" style="display: none;">
-            <span>Loading download resolutions</span>
+            <span>Loading resolutions</span>
             <br>
             <img class="spinner" src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">
         </div>
@@ -206,6 +214,9 @@
         <a href="/">Back to home</a>
     </div>
 
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
     <script>
         let nodes = [
             "123movdltest"
@@ -223,6 +234,8 @@
         const filename = moviename + ".ts"
 
         function startDownload() {
+                        document.getElementById("StreamBut").style.display = "none"
+            document.getElementById("downloadBtn").style.display = "none"
             document.getElementById("movieinfoload").style.display = ""
 
             if (vidurl.includes("/movie/")) {
@@ -256,7 +269,7 @@
                 if (data.res) {
                     document.getElementById("resloading").style.display = "none"
                     document.getElementById("resolutionSelect").style.display = ""
-                    populateResolutions(data.res, movname);
+                    populateResolutions(data.res, movname, false);
                 }
             };
 
@@ -265,13 +278,53 @@
             };
         }
 
-        function generateUUID() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            const random = Math.random() * 16 | 0; // Generate a random number between 0 and 15
-            const value = c === 'x' ? random : (random & 0x3 | 0x8); // Set the 13th bit to 1 (version 4 UUID)
-            return value.toString(16); // Convert to hexadecimal
-        });
+
+        function startStreaming() {
+                        document.getElementById("StreamBut").style.display = "none"
+            document.getElementById("downloadBtn").style.display = "none"
+            document.getElementById("movieinfoload").style.display = ""
+
+            if (vidurl.includes("/movie/")) {
+                vidurl = vidurl.replace("/movie/", "/watch-movie/")
+            }
+
+            const eventSource = new EventSource(`https://${randomNode}.glitch.me/startdownload?link=${encodeURIComponent(vidurl)}&movname=${encodeURIComponent(getQueryParameter("name"))}`);
+            
+            let movname = ""
+            eventSource.onmessage = function (event) {
+                const data = JSON.parse(event.data);
+
+                if (data.movieinfo) {
+                    document.getElementById('movieName').textContent = data.movieinfo[0];
+                    movname = data.movieinfo[0]
+                    document.getElementById('movieDesc').textContent = data.movieinfo[1];
+                    document.getElementById('movieThumbnail').src = data.movieinfo[2];
+                    document.getElementById("movieInfo").style.display = ""
+                    document.getElementById("movieinfoload").style.display = "none"
+                    document.getElementById("resloading").style.display = ""
+                }
+
+                if (data.message) {
+                    console.log(data.message)
+                }
+
+                if (data.error) {
+                    eventSource.close();
+                }
+
+                if (data.res) {
+                    document.getElementById("resloading").style.display = "none"
+                    document.getElementById("resolutionSelect").style.display = ""
+                    populateResolutions(data.res, movname, true);
+                }
+            };
+
+            eventSource.onerror = function () {
+                eventSource.close();
+            };
         }
+
+
 
         function parseM3U8(text) {
             const segments = [];
@@ -364,14 +417,48 @@
     document.getElementById("doing").textContent = filename + " is ready to download below!";
 }
 
-        function populateResolutions(resolutions, movname) {
+
+
+        async function realstream(indexm3u8) {
+
+            var video = document.getElementById('video');
+            var videoSrc = decodeURIComponent(indexm3u8);
+            video.style.display = ""
+            document.getElementById("movieInfo").style.display = "none"
+            document.getElementById("resolutionSelect").style.display = "none"
+            if (Hls.isSupported()) {
+                var hls = new Hls();
+                hls.loadSource(videoSrc);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    video.play();
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = videoSrc;
+                video.addEventListener('loadedmetadata', function() {
+                    video.play();
+                });
+            } else {
+                console.error('HLS is not supported in this browser');
+            }
+
+        }
+
+
+        function populateResolutions(resolutions, movname, streaming) {
             console.log(resolutions)
 
             const resolutionSelect = document.getElementById('resolutionSelect');
             let h = ""
             for (const i of resolutions) {
+
+                if (streaming) {
+                      h += `<button onclick="realstream('${encodeURIComponent(i[1])}')">${i[0]}p</button>`
+                } else {
+                      h += `<button onclick="realdownload('${encodeURIComponent(i[1])}')">${i[0]}p</button>`
+                }
    
-                h += `<button onclick="realdownload('${encodeURIComponent(i[1])}')">${i[0]}p</button>`
+              
             }
 
             resolutionSelect.innerHTML = h
