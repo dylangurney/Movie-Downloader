@@ -76,11 +76,6 @@
             border-radius: 8px;
         }
 
-        video {
-            max-width: 1200px;
-            margin-top: 10px;
-        }
-
         /* Resolution buttons */
         .movitem {
             display: flex;
@@ -167,55 +162,23 @@
         a:hover {
             text-decoration: underline;
         }
-
-        .spinner {
+            .spinner {
         width: 40px; /* Set the width to your desired size */
         height: 40px; /* Set the height to your desired size */
     }
+
     </style>
 </head>
 
 <body>
 
-    <h1 id="dlname"></h1>
 
     <div class="form-container">
-        <button onclick="startStreaming()" id="StreamBut">Start Streaming</button>
-        <button onclick="startDownload()" id="downloadBtn">Start Download</button>
-
-        <div id="movieinfoload" style="display: none;">
-            <span>Loading video information</span>
-            <br>
-            <img class="spinner" src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">
+        <input type="text" id="movieUrl" placeholder="?"/>
+        <div id="suggestions">
+            
         </div>
-        <div id="movieInfo" style="display: none;">
-            <p id="movieName"></p>
-            <p id="movieDesc"></p>
-            <img id="movieThumbnail" src=""/>
-        </div>
-        <video id="video" controls style="display: none;"></video>
-        <div id="resloading" style="display: none;">
-            <span>Loading resolutions</span>
-            <br>
-            <img class="spinner" src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">
-        </div>
-        
-
-        <div id="resolutionSelect" style="display: none;">
-
-        </div>
-        <br>
-        <p id="doing" style="display: none">Waiting for download url.</p>
-        <progress id="downloadProgress" value="0" max="100" style="display: none"></progress>
-        <a id="downloadready" style="display: none">Download Ready!</a>
-        <br>
-        <br>
-        <br>
-        <a href="/">Back to home</a>
     </div>
-
-
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
     <script>
         let nodes = [
@@ -223,250 +186,57 @@
         ]
         let randomNode = nodes[Math.floor(Math.random() * nodes.length)];
 
-        const getQueryParameter = (name) => {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(name);
+
+        const input = document.getElementById("movieUrl");
+        const suggestionsBox = document.getElementById("suggestions");
+
+        const fetchMovies = async (query) => {
+            if (!query.trim()) {
+                suggestionsBox.innerHTML = ""; // Clear suggestions for empty input
+                return;
+            }
+
+            const url = `https://${randomNode}.glitch.me/search?q=${encodeURIComponent(query)}`;
+            
+            try {
+                suggestionsBox.innerHTML = `<img class="spinner" src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">`
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (query != input.value) {
+                    return
+                }
+
+                if (response.ok) {
+                    displaySuggestions(data);
+                } else {
+                    suggestionsBox.innerHTML = "<div>No results found</div>";
+                }
+            } catch (error) {
+                console.error("Error fetching movies:", error);
+                suggestionsBox.innerHTML = "<div>Error fetching data</div>";
+            }
+            };
+
+        const displaySuggestions = (movies) => {
+            let h = ""
+            for (const i of movies) {
+                console.log(i)
+                h += `
+                <a class="movitem" href="/download.html?l=${encodeURIComponent(i.link)}&name=${encodeURIComponent(i.title)}">
+                    <img src=${i.image} class="movimg">
+                    <p class="movtitle">${i.title}</p>
+                </a>
+                `
+            }
+            suggestionsBox.innerHTML = h
         };
 
-        document.getElementById("dlname").textContent = getQueryParameter("name")
-        let vidurl = getQueryParameter("l")
-        const moviename = getQueryParameter("name")
-        const filename = moviename + ".ts"
-
-        function startDownload() {
-                        document.getElementById("StreamBut").style.display = "none"
-            document.getElementById("downloadBtn").style.display = "none"
-            document.getElementById("movieinfoload").style.display = ""
-
-            if (vidurl.includes("/movie/")) {
-                vidurl = vidurl.replace("/movie/", "/watch-movie/")
-            }
-
-            const eventSource = new EventSource(`https://${randomNode}.glitch.me/startdownload?link=${encodeURIComponent(vidurl)}&movname=${encodeURIComponent(getQueryParameter("name"))}`);
-            
-            let movname = ""
-            eventSource.onmessage = function (event) {
-                const data = JSON.parse(event.data);
-
-                if (data.movieinfo) {
-                    document.getElementById('movieName').textContent = data.movieinfo[0];
-                    movname = data.movieinfo[0]
-                    document.getElementById('movieDesc').textContent = data.movieinfo[1];
-                    document.getElementById('movieThumbnail').src = data.movieinfo[2];
-                    document.getElementById("movieInfo").style.display = ""
-                    document.getElementById("movieinfoload").style.display = "none"
-                    document.getElementById("resloading").style.display = ""
-                }
-
-                if (data.message) {
-                    console.log(data.message)
-                }
-
-                if (data.error) {
-                    eventSource.close();
-                }
-
-                if (data.res) {
-                    document.getElementById("resloading").style.display = "none"
-                    document.getElementById("resolutionSelect").style.display = ""
-                    populateResolutions(data.res, movname, false);
-                }
-            };
-
-            eventSource.onerror = function () {
-                eventSource.close();
-            };
-        }
+        input.addEventListener("input", (e) => {
+            fetchMovies(e.target.value);
+        });
 
 
-        function startStreaming() {
-                        document.getElementById("StreamBut").style.display = "none"
-            document.getElementById("downloadBtn").style.display = "none"
-            document.getElementById("movieinfoload").style.display = ""
-
-            if (vidurl.includes("/movie/")) {
-                vidurl = vidurl.replace("/movie/", "/watch-movie/")
-            }
-
-            const eventSource = new EventSource(`https://${randomNode}.glitch.me/startdownload?link=${encodeURIComponent(vidurl)}&movname=${encodeURIComponent(getQueryParameter("name"))}`);
-            
-            let movname = ""
-            eventSource.onmessage = function (event) {
-                const data = JSON.parse(event.data);
-
-                if (data.movieinfo) {
-                    document.getElementById('movieName').textContent = data.movieinfo[0];
-                    movname = data.movieinfo[0]
-                    document.getElementById('movieDesc').textContent = data.movieinfo[1];
-                    document.getElementById('movieThumbnail').src = data.movieinfo[2];
-                    document.getElementById("movieInfo").style.display = ""
-                    document.getElementById("movieinfoload").style.display = "none"
-                    document.getElementById("resloading").style.display = ""
-                }
-
-                if (data.message) {
-                    console.log(data.message)
-                }
-
-                if (data.error) {
-                    eventSource.close();
-                }
-
-                if (data.res) {
-                    document.getElementById("resloading").style.display = "none"
-                    document.getElementById("resolutionSelect").style.display = ""
-                    populateResolutions(data.res, movname, true);
-                }
-            };
-
-            eventSource.onerror = function () {
-                eventSource.close();
-            };
-        }
-
-
-
-        function parseM3U8(text) {
-            const segments = [];
-            
-            // Split the text into lines
-            const lines = text.split('\n');
-            
-            for (const line of lines) {
-                const trimmedLine = line.trim();
-                // Skip lines starting with '#' as they are metadata or comments
-                if (!trimmedLine.startsWith('#') && trimmedLine.includes("https://")) {
-                segments.push(trimmedLine);
-                }
-            }
-            
-            return segments;
-        }
-
-        async function realdownload(indexm3u8) {
-    document.getElementById("doing").style.display = "";
-    document.getElementById("downloadProgress").style.display = "";
-    document.getElementById("doing").textContent = "Loading Index file";
-    console.log(indexm3u8);
-
-    // Fetch the m3u8 file and parse it
-    const r = await fetch(decodeURIComponent(indexm3u8));
-    const idxtxt = await r.text();
-    const parsed = parseM3U8(idxtxt);
-    console.log(parsed);
-
-    let bytesDownloaded = 0;  // Track total bytes downloaded
-    let totalBytes = 0;       // Track total bytes for progress calculation
-    let totalChunks = 0;      // Track total chunks downloaded
-
-    // Create a progress bar to track download progress
-    const progressBar = document.getElementById("downloadProgress");
-    const progressText = document.getElementById("doing"); // Display text for progress
-
-    // Prepare the array to hold all chunks
-    const chunkArray = [];
-
-    // Function to update the progress bar and text
-    function updateProgress() {
-        const chunkPercentage = parsed.length > 0 ? (totalChunks / parsed.length) * 100 : 0;
-        const bytesInMB = bytesDownloaded / (1024 * 1024);
-        const totalMB = totalBytes / (1024 * 1024);
-        progressBar.max = parsed.length;
-        progressBar.value = totalChunks;
-        progressText.textContent = `Downloaded ${totalMB.toFixed(2)} MB (${totalChunks}/${parsed.length} chunks) - ${chunkPercentage.toFixed(2)}%`;
-        document.title = `${getQueryParameter("name")} - ${chunkPercentage.toFixed(2)}%`
-    }
-
-
-    // Function to download chunks in batches of 10 (concurrent threads)
-    async function downloadChunksInBatches(chunks) {
-        const batchSize = 50;
-        for (let i = 0; i < chunks.length; i += batchSize) {
-            const batch = chunks.slice(i, i + batchSize); // Slice out a batch of 5 chunks
-            const batchResults = await Promise.all(batch.map(async (i) => {
-                const c = await fetch(i);
-                const cb = await c.blob();
-                const blobSize = cb.size;
-
-                totalBytes += blobSize; // Add to total bytes
-                totalChunks += 1; // Increment total chunks
-                bytesDownloaded += blobSize; // Increment downloaded bytes
-
-                updateProgress(); // Update progress display
-
-                return cb;
-            }));
-
-            chunkArray.push(...batchResults); // Add batch results to the chunk array
-        }
-    }
-
-    // Start downloading the chunks in batches of 5
-    await downloadChunksInBatches(parsed);
-
-    // Combine all downloaded chunks into a single Blob
-    const fileBlob = new Blob(chunkArray);
-
-    // Prepare the download link
-    const downloadLink = document.getElementById("downloadready");
-    downloadLink.href = URL.createObjectURL(fileBlob);
-    downloadLink.download = filename;
-    downloadLink.click();
-    downloadLink.style.display = "";
-
-    document.getElementById("doing").textContent = filename + " is ready to download below!";
-}
-
-
-
-        async function realstream(indexm3u8) {
-
-            var video = document.getElementById('video');
-            var videoSrc = decodeURIComponent(indexm3u8);
-            video.style.display = ""
-            document.getElementById("movieInfo").style.display = "none"
-            document.getElementById("resolutionSelect").style.display = "none"
-            if (Hls.isSupported()) {
-                var hls = new Hls();
-                hls.loadSource(videoSrc);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                    video.play();
-                });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = videoSrc;
-                video.addEventListener('loadedmetadata', function() {
-                    video.play();
-                });
-            } else {
-                console.error('HLS is not supported in this browser');
-            }
-
-        }
-
-
-        function populateResolutions(resolutions, movname, streaming) {
-            console.log(resolutions)
-
-            const resolutionSelect = document.getElementById('resolutionSelect');
-            let h = ""
-            for (const i of resolutions) {
-
-                if (streaming) {
-                      h += `<button onclick="realstream('${encodeURIComponent(i[1])}')">${i[0]}p</button>`
-                } else {
-                      h += `<button onclick="realdownload('${encodeURIComponent(i[1])}')">${i[0]}p</button>`
-                }
-   
-              
-            }
-
-            resolutionSelect.innerHTML = h
-
-            // Enable the resolution select dropdown and the download button
-            resolutionSelect.disabled = false;
-            document.getElementById('downloadBtn').disabled = false;
-        }
     </script>
 
 </body>
