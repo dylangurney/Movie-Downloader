@@ -179,25 +179,6 @@
         <div id="suggestions">
             
         </div>
-        <button onclick="startDownload()" style="display: none;" id="downloadBtn">Start Download</button>
-        <div id="movieinfoload" style="display: none;">
-            <span>Loading video information</span>
-            <img class="spinner" src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">
-        </div>
-        <div id="movieInfo" style="display: none;">
-            <p id="movieName"></p>
-            <p id="movieDesc"></p>
-            <img id="movieThumbnail" src=""/>
-        </div>
-        <div id="resloading" style="display: none;">
-            <span>Loading download resolutions</span>
-            <img class="spinner" src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">
-        </div>
-        
-
-        <div id="resolutionSelect" style="display: none;">
-
-        </div>
     </div>
 
     <script>
@@ -219,7 +200,7 @@
             const url = `https://${randomNode}.glitch.me/search?q=${encodeURIComponent(query)}`;
             
             try {
-                suggestionsBox.innerHTML = `<img src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">`
+                suggestionsBox.innerHTML = `<img class="spinner" src="https://cdn.glitch.global/184a66ff-fa51-4ace-99ce-0e56303a65c9/loading%20(1).gif?v=1732948714008" alt="Loading...">`
                 const response = await fetch(url);
                 const data = await response.json();
 
@@ -257,62 +238,6 @@
         });
 
 
-        function startDownload() {
-            document.getElementById("movieinfoload").style.display = ""
-
-            const eventSource = new EventSource(`https://${randomNode}.glitch.me/startdownload?url=${encodeURIComponent(url)}`);
-            
-            let movname = ""
-            eventSource.onmessage = function (event) {
-                const data = JSON.parse(event.data);
-
-                if (data.movieinfo) {
-                    document.getElementById('movieName').textContent = data.movieinfo[0];
-                    movname = data.movieinfo[0]
-                    document.getElementById('movieDesc').textContent = data.movieinfo[1];
-                    document.getElementById('movieThumbnail').src = data.movieinfo[2];
-                    document.getElementById("movieInfo").style.display = ""
-                    document.getElementById("movieinfoload").style.display = "none"
-                    document.getElementById("resloading").style.display = ""
-                }
-
-                if (data.message) {
-                    console.log(data.message)
-                }
-
-                if (data.error) {
-                    eventSource.close();
-                }
-
-                if (data.res) {
-                    document.getElementById("resloading").style.display = "none"
-                    document.getElementById("resolutionSelect").style.display = ""
-                    populateResolutions(data.res.res, data.res.id, movname);
-                }
-            };
-
-            eventSource.onerror = function () {
-                eventSource.close();
-            };
-        }
-
-        function populateResolutions(resolutions, movieid, movname) {
-            console.log(resolutions)
-
-            const resolutionSelect = document.getElementById('resolutionSelect');
-            let h = ""
-            for (const i of resolutions) {
-                h += `    <a href="https://${randomNode}.glitch.me/download?id=${movieid}&res=${i}&movname=${movname}">
-                <button>${i}p</button>
-                </a>`
-            }
-
-            resolutionSelect.innerHTML = h
-
-            // Enable the resolution select dropdown and the download button
-            resolutionSelect.disabled = false;
-            document.getElementById('downloadBtn').disabled = false;
-        }
     </script>
 
 </body>
